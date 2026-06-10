@@ -51,10 +51,11 @@ t_y = T/3
 t_z = T * (2/3)
     
 #delta_t = T/2
-delta_t = T /2
+delta_t = T/2
 
+J_a = 2* ((0.9 * np.pi ))/ ((T * 0.5) * 4)
 #J_a = 2* ((0.9 * np.pi ))/ ((T * 0.5) * 4)  #  2* ((0.9 * np.pi ))/ ((T * 0.5) * 4)-- this is 2x the value in paper 
-J_a =(1* np.pi)/3# try new J_a
+#J_a =(1* np.pi)/3# try new J_a
                                        # Q: Can I vary this J_a to perform perturb on Hamiltonian?
                                        # Ans: I don't think so. I think this might work: 1.change the pulse amplitude by 1%
                                        #                                                 2.shift the timing by 0.01T
@@ -650,7 +651,7 @@ def periodic_derivative(arr, spacing, axis):
     return (np.roll(arr, -1, axis=axis) - np.roll(arr, 1, axis=axis)) / (2 * spacing)
 
 
-def winding_number_enumerate_fixed(n_kx=40, n_ky=40, n_t=80, epsilon=np.pi):
+def winding_number_enumerate_fixed(n_kx=40, n_ky=40, n_t=80, epsilon= 0 ):
     """
     Compute Rudner winding number W[U_epsilon].
 
