@@ -2205,7 +2205,7 @@ t_sampling = 50
 #%% plot try scatter # easier to read --WITH TIME VOR
 # func: def Rho_sites_all_epsilons(N_x, N_y, num_time_stages, a_0, x_0, y_0, s_0, list_of_sites_needed)
 #U_4 = U_full_time_vor_core(N_x, N_y, num_time_stages, a_0, x_0_real, y_0_real)
-Rho, Epsilon = Rho_sites_all_epsilons(8, 8, t_sampling, 1,  4, 4, list_of_sites_around_mid_8) # it seems the more time sampled, the larger the bulk structure(that range of Epsilon)'s Rho 2ND FUNC CALLED
+Rho, Epsilon = Rho_sites_all_epsilons(8, 8, t_sampling, 1,  4, 4, [[5, 4, 2]]) # it seems the more time sampled, the larger the bulk structure(that range of Epsilon)'s Rho 2ND FUNC CALLED
 #print (Rho, type(Rho), 'Rho') # Rho is list              # vortex core  assume this vortex actually generate pi mode at 3, 4, 1(4b plot process correct)
 #print (Epsilon, type(Epsilon), 'Epsilon') # Epsilon is array  
 idx = np.argsort(Epsilon) # sorted all against the small/large of Epsilon

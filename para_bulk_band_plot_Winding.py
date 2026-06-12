@@ -53,7 +53,7 @@ t_z = T * (2/3)
 #delta_t = T/2
 delta_t = T/2
 
-J_a = ((0.9* np.pi ))/ (delta_t)
+J_a = ((0.9* np.pi ))/ ((delta_t)*4)
 #J_a = 2* ((0.9 * np.pi ))/ ((T * 0.5) * 4)  #  2* ((0.9 * np.pi ))/ ((T * 0.5) * 4)-- this is 2x the value in paper 
 #J_a =(1* np.pi)/3# try new J_a
                                        # Q: Can I vary this J_a to perform perturb on Hamiltonian?
@@ -164,6 +164,472 @@ def H_matrix_2by2(k_x, k_y, t, a_0):
 #a_11 = H_test_for_entrices[0][0]
 #a_12 = H_test_for_entrices[0][1]
 #(1.413716694115407-1.413716694115407j) (1.413716694115407-1.413716694115407j)
+
+#%% from here we are ploting bulk phase band
+def U_full_discretisation_plot(k_x, k_y, num_time_stages): # which means along lhs to rhs, from (1) earlier/smaller t to (6) later/larger t
+    
+    H_list_6_matrices =[]
+    U_list_N_matrices = []
+    t_desicretisation= T /num_time_stages
+#    time_stage = num_time_stages
+    
+    for i in range (num_time_stages):
+        
+    
+        t_i = T - t_desicretisation * (i + 0.5) 
+    
+        H_i = H_matrix_2by2(k_x, k_y, t_i, a_0)
+#expm(-1j* H_i_test* delta_t_test)
+        
+        U_i = expm(-1j* H_i* (t_desicretisation)) #!!!!! # here using exponential form construct each of U_1 to U_6
+        
+        U_list_N_matrices.append(U_i)
+        
+#        print(U_list_N_matrices)
+        
+    U_full = reduce(np.matmul, U_list_N_matrices) # here adjoint the full time evolution 
+        # here U_list_N_matrices = [e^{-iH(T-dt)}]
+    return U_full   
+
+
+#%%
+# ----- U FROM K BASIS MATRIX H 2X2 (U(T)-H(K))----
+#Here is the 2by2 time evolution matrix: (1 to 6) staged time evolution respectively & full time evolution
+'''
+def U_full_ascending(k_x, k_y, num_time_stages): # which means along lhs to rhs, from (1) earlier/smaller t to (6) later/larger t
+    
+#    H_list_6_matrices =[]
+    U_list_N_matrices =[]
+    
+#    time_stage = num_time_stages
+    
+    for i in range (num_time_stages):
+    
+        t_i = (T/num_time_stages) * i + T/(num_time_stages * 2)
+    
+        H_i = H_matrix_2by2(k_x, k_y, t_i, a_0)
+#expm(-1j* H_i_test* delta_t_test)
+        
+        U_i = expm(-1j* H_i* (T/num_time_stages)) #!!!!! # here using exponential form construct each of U_1 to U_6
+        
+        U_list_N_matrices.append(U_i)
+        
+#        print(U_list_N_matrices)
+        
+    U_full = reduce(np.matmul, U_list_N_matrices) # here adjoint the full time evolution 
+        # here U_list_N_matrices = [U_0, U_1, ..., U_6]
+    return U_full 
+'''
+# Here the order of U_i multiplied is wrong, the actual time - ordered U_full should be -
+# - DESCENDING ; we will come back later
+# ASCENDING = DESCENDING, SO DOESN'T MATTER 
+
+
+
+#%% Here introduce the 'BASIS' VARIABLE, momentum(k vector) of x and y directions
+# we have these functions generate k_y_list and k_x_list, but subsequence functions of plot phase bands/H real basis...so on
+#                                                         if they don't use 'k_x_list' or 'k_y_list', then their N_x/y 
+#                                                         (which is number of generated k_x and k_y isn't adjusted here)
+#*******************************************************************************************
+N_y_adjust = 10 #(N_y = L_y / a_0 ) # to distinguish from 'N_y’ embedded in the basis transform functions late
+                # Q( also denoted at the test k basis 2Ny x2Ny Ham: is the [number of k_y list](which is N_y_adjust)
+                #    here input into the [2x2 Ham], equivalent to
+                #    the ['block-diagonal' form of 2Ny x 2Ny k basis Hamiltonian]? 
+                
+def generate_k_y_list(left_lim, right_lim, N_y):
+    
+    k_y_generated = np.linspace(left_lim, right_lim, N_y+1) # vary this numbers of k_y we plot here, 
+                                         # will vary the desity of bulk phase plotted
+    return k_y_generated[1:]
+
+#global_journal.write("Generating k_y list...")
+k_y_list = generate_k_y_list(0 *np.pi, 2* np.pi, N_y_adjust)
+#k_y_test_list_no_including_2pi = k_y_list[ :-1]     # trail for separate phase bands plot
+                          
+#print(k_y_list, 'k_y_list')
+                                        
+# k_x sampling portal (not only for edge! For all kx!!)
+ 
+#*******************************************************************************************
+
+N_x_adjust = 50 #(N_x = L_x / a_0 )
+def generate_k_x_list(left_lim, right_lim, N_x):
+#    global_journal.write(f"Generating k_x list on the interval ({left_lim:0.2f}, {right_lim:0.2f}) with N_x = {N_x_adjust}...")
+    
+    k_x_generated = np.linspace(left_lim, right_lim, N_x+1) # vary this numbers of k_y we plot here, 
+                                         # will vary the desity of bulk phase plotted
+    return k_x_generated[1:]
+#k_x = 2pi/N, no a_0 involved 
+
+k_x_list = generate_k_x_list(0 *np.pi, 2* np.pi, N_x_adjust)# very important - here we defined the independent var k_x! 
+#print(generate_k_x_list(0 *np.pi, 2* np.pi, 3))
+#print(k_x_list, 'k_x_list')
+
+#If want to vary list k_x(ex: how many k_x we plot against within 0-2pi), please vary it here 
+# (Here we use the same k_x list for bulk plot as well as edge plot
+#**********************************************************************************
+
+#%%
+
+#plt.figure()
+
+# Here this function below is designed for how to plot the quasienergy (epsilon_n, which is arg of the eigval of U_full's )-
+#- against kx, for specific k_y value 
+
+'''
+def plot_phase_vs_kx(k_x, k_y):
+    Ufull_matrix_asc_list =[]
+    eigval_U_asc_T_list = []
+#    eigvec_U_asc_T_list = []
+    phase1_T_asc_list = []
+    phase2_T_asc_list = []
+    quasi1_T_asc_list = []
+    quasi2_T_asc_list = []
+    
+    
+    for i in range (len(k_x)):
+                                   #U_full_discretisation(k_x, k_y, num_time_stages)
+        Ufull_matrix_asc_list.append(U_full_discretisation(k_x[i], k_y, 12))
+    #    print(i)
+#        print(Ufull_matrix_asc_list)
+        
+        
+    for i in range (len(k_x)):
+        
+        eigvals, eigvecs = np.linalg.eig(Ufull_matrix_asc_list[i])
+    #    print(eigvals,'--eigen value;', eigvecs,'--eigen vector', i,'i') # all these eigen values are complex!!
+
+        eigval_U_asc_T_list.append(eigvals)
+        phase1_T_asc_list.append(- np.angle(eigvals[0])) #these are epsilon_n*T = Phi_n (n here =1, 2) -- which is what we plotted
+        phase2_T_asc_list.append(- np.angle(eigvals[1])) # see above; but anyway we setted T = 1 before, so-- 
+        quasi1_T_asc_list.append(- np.angle(eigvals[0]/T))  # quasienergy epsilon_n = phase_n/T (MAYBE WE WILL USE THIS LATER)                                              
+        quasi2_T_asc_list.append(- np.angle(eigvals[1]/T))  # inrigorously, phi_n = epsilon_n, phase band is quasiE here
+    # here phase1 and phase2 are for 2 (arg of) eigenvals of 2by2 H matrix
+    
+    #OBSERVATION:
+    # ***We can see that: both of phase1 and phase2 (for all kx (and ky) under list), -
+    # - the phase pattern is central symmetry against 0 
+    
+
+'''
+
+#%% try U_full_discretisation
+def plot_phase_vs_kx(k_x, k_y): #k_x is list, k_y is specific value 
+    Ufull_list =[]
+    eigval_U_asc_T_list = []
+#    eigvec_U_asc_T_list = []
+    phase1_T_asc_list = []
+    phase2_T_asc_list = []
+    quasi1_T_asc_list = []
+    quasi2_T_asc_list = []
+    
+    
+    for i in range (len(k_x)):
+        
+        Ufull_list.append(U_full_discretisation_plot(k_x[i], k_y, 100)) # problem identified: time discretisation
+    #    print(i)
+#        print(Ufull_matrix_asc_list)
+        
+        
+    for i in range (len(k_x)):
+        
+        eigvals, eigvecs = np.linalg.eig(Ufull_list[i])
+    #    print(eigvals,'--eigen value;', eigvecs,'--eigen vector', i,'i') # all these eigen values are complex!!
+
+        eigval_U_asc_T_list.append(eigvals)
+        phase1_T_asc_list.append(- np.angle(eigvals[0])) #these are epsilon_n*T = Phi_n (n here =1, 2) -- which is what we plotted
+        phase2_T_asc_list.append(- np.angle(eigvals[1])) # see above; but anyway we setted T = 1 before, so-- 
+
+#turn off this if don't want to graph interrupt
+    plt.plot(k_x, phase1_T_asc_list,  '.', color='tab:blue', markersize = 3)
+    plt.plot(k_x, phase2_T_asc_list,  '.', color='tab:purple', markersize = 3)
+    
+for i in range (len(k_y_list)):
+    
+    plot_phase_vs_kx(k_x_list, k_y_list[i])
+    
+plt.ylim (-np.pi, np.pi)    
+    
+plt.xlabel(r'$k_x a_0\ \mathrm{(PBC)}$', fontsize=13)
+plt.ylabel(r'Phase $\phi_n  = \epsilon_n T$  (T = 1)', fontsize=13)
+
+plt.title(r'Bulk phase band plot vs $k_x$ (PBC in $x,y$)', fontsize=13)
+
+
+from matplotlib.lines import Line2D # This is purely for plot legend 
+
+legend_elements = [
+    Line2D([0], [0], marker='.', color='tab:blue',
+           linestyle='None', markersize=6,
+           label='Phase band 1 (1st eigenvalue)'),
+    Line2D([0], [0], marker='.', color='tab:purple',
+           linestyle='None', markersize=6,
+           label='Phase band 2 (2nd eigenvalue)')
+]
+
+plt.legend(handles=legend_elements, loc='right', bbox_to_anchor=(1, 0.56))
+plt.grid()
+plt.show()
+
+
+#%%
+
+#-----REAL BASIS HAMILTONIAN MATRIX H 2NX2N-----
+# This below cell shouldn't be put just after 2by2 lattice coupling Hamiltonian
+#Please don't confuse the 2by2 sublattices coupling Hamiltonian with the (2N by 2N) REAL SPACE Hamiltonian!!
+#(here this  H2N matrix is for specific k_x)
+# here y and y' denoted the hopping relation between y and y'. 
+#-----------------basically this is H_y y't----------------------
+
+# here we used inverse FT in y direction, involved (1/N_y) (--not L_y here)
+def real_H2Ny_PBC_fix_k_x(N_y, k_x, t): # t can be any from [  t_i = T/N * i + T/(N * 2)  ] -- Here N is Ly
+                                 #NOTICE: for the subsequence codes, Ly(number of sites)
+    
+    M = np.zeros((2*N_y, 2*N_y), dtype =complex)
+    
+#    a_0 = 1 # here is the lattices length
+    
+    # here we need to sum agaisnt k_y, for corresponding (2pi/Ny)* z; we used integer z instead, so that we can alsways adjust the length of ky_list
+    # Which is different from the beginning 
+    for z in range (1, N_y+1):
+        
+        k_y = 2* (np.pi/ (N_y*a_0)) * z  # k_y = 2pi/N -- This **N** has went through the whole process of computing OBC 
+                                 # N - real basis converted H_yy'kx (only Nx/y = number of kx/y, density of phase bands are same)
+                                 # N - turn off corner
+                                 # N - U 
+                                 # all these N denote the number of unit cells (num of y or x)
+        H_ky = H_matrix_2by2(k_x, k_y, t, a_0) # here is how we introduced 2by2 Hamiltonian 
+        
+        
+        
+        for i in range(N_y): #--i in range(N) is for row, j in range N is for column. So y-y' here is y for row y'for column 
+            for j in range(N_y):
+                M[2*i:2*i+2, 2*j:2*j+2] += (1/N_y) * (np.exp(1j*  k_y * ((i+1) - (j+1)))) * H_ky
+    # M is covered by ky rounds and rounds, that's how we sum against  ky
+    return M
+
+
+
+#create real object to test this real 2N by 2N matrix:
+    
+#H_specific_t_stage = real_basis_H2N_fix_k_x(4, k_x_list[1], (T/12)*11)
+
+#(here N =10, time stage is at the 6th(midpoint of stage 6)
+
+#%%
+# from H (T/12) to H (largest), 
+
+
+def Ufull_descending_PBC(N_y, k_x, num_time_stages = 100): # this is what it should be: U6U5U4U3U2U1 inverse from the bbnotes
+# var index: 1 
+    U_list_matrices = []
+    t_desicretisation= T /num_time_stages
+#    time_stage = num_time_stages
+    
+    for i in range (num_time_stages):
+        
+    
+        #t_i = T - t_desicretisation * (i + 1) # this is for t_0...t_N-1 = t-delta t ... 0
+        t_i = T - t_desicretisation * (i + 0.5) # this is mid point, large t at LHS, small t at RHS 
+        
+        H_i = real_H2Ny_PBC_fix_k_x(N_y, k_x, t_i) 
+#expm(-1j* H_i_test* delta_t_test)      # N_y N_x as before
+        #H2NyNx_xyOBC_time_vor_core(N_y, N_x, t, a_0, x_0_real, y_0_real, s_0)
+        U_i = expm(-1j* H_i* (t_desicretisation)) #!!!!! # here using exponential form construct each of U_1 to U_6
+        
+        U_list_matrices.append(U_i)
+
+
+        
+    U_full = reduce(np.matmul, U_list_matrices)     
+    return U_full
+
+#----------------------------------------------------------------------
+# end of bulk phase plot
+#%% Here begin chiral edge state plot
+def real_H2Ny_PBC_fix_k_x(N_y, k_x, t): # t can be any from [  t_i = T/N * i + T/(N * 2)  ] -- Here N is Ly
+                                 #NOTICE: for the subsequence codes, Ly(number of sites)
+    
+    M = np.zeros((2*N_y, 2*N_y), dtype =complex)
+    
+#    a_0 = 1 # here is the lattices length
+    
+    # here we need to sum agaisnt k_y, for corresponding (2pi/Ny)* z; we used integer z instead, so that we can alsways adjust the length of ky_list
+    # Which is different from the beginning 
+    for z in range (1, N_y+1):
+        
+        k_y = 2* (np.pi/ (N_y*a_0)) * z  # k_y = 2pi/N -- This **N** has went through the whole process of computing OBC 
+                                 # N - real basis converted H_yy'kx (only Nx/y = number of kx/y, density of phase bands are same)
+                                 # N - turn off corner
+                                 # N - U 
+                                 # all these N denote the number of unit cells (num of y or x)
+        H_ky = H_matrix_2by2(k_x, k_y, t, a_0) # here is how we introduced 2by2 Hamiltonian 
+        
+        
+        
+        for i in range(N_y): #--i in range(N) is for row, j in range N is for column. So y-y' here is y for row y'for column 
+            for j in range(N_y):
+                M[2*i:2*i+2, 2*j:2*j+2] += (1/N_y) * (np.exp(1j*  k_y * ((i+1) - (j+1)))) * H_ky
+    # M is covered by ky rounds and rounds, that's how we sum against  ky
+    return M
+
+
+def H2Ny_yOBC(N_y, k_x, t): # here num of stages are fixed to be 6; lattice length a_0 fixed to be 1
+                           # here k_x is not a list but [a number], a specific kx
+#    t_x = T/6 *  x + T/(6 * 2)   # here this x is equivalent to i in the 2x2 H list func
+    
+    # from here, we are trying to turn the 2N matrix to edge condition
+    real_H2Ny_edge = real_H2Ny_PBC_fix_k_x(N_y, k_x, t)
+    rows, cols = real_H2Ny_edge .shape
+
+    top_right = [(i, j ) for i in range(rows) for j in range(cols) if i < 2 and j >= cols - 2]
+    top_right_indices = top_right[:4]
+    
+    
+
+# Bottom-left 4 entries
+    bottom_left = [(i, j) for i in range(rows) for j in range(cols) if i >= rows - 2 and j < 2]
+    bottom_left_indices = bottom_left[:4]
+
+# Turn off corner entries (we have set each of the Hamiltonians for each stage has corner terms 0)
+    for i, j in top_right_indices + bottom_left_indices:
+        real_H2Ny_edge[i, j] = 0
+        
+    
+    return real_H2Ny_edge # this will return the list of 6 edge functions which turned off corner already 
+
+
+test_func_H_6_2Ny_OBC = H2Ny_yOBC(10, k_x_list[3], 0.5)
+
+
+
+def U_yOBCxPBC_2Ny(N_y, k_x, num_time_stages): # which means along lhs to rhs, from (1) earlier/smaller t to (6) later/larger t
+    
+ #   H_list_6_matrices =[]
+    U_list_N_matrices = []
+    t_desicretisation= T /num_time_stages
+#    time_stage = num_time_stages
+    
+    for i in range (num_time_stages):
+        
+    
+        t_i = T - t_desicretisation * (i + 0.5) 
+    
+        H_i = H2Ny_yOBC(N_y, k_x, t_i)
+#expm(-1j* H_i_test* delta_t_test)
+        
+        U_i = expm(-1j* H_i* (t_desicretisation)) #!!!!! # here using exponential form construct each of U_1 to U_6
+        
+        U_list_N_matrices.append(U_i)
+        
+#        print(U_list_N_matrices)
+        
+    U_full = reduce(np.matmul, U_list_N_matrices) # here adjoint the full time evolution 
+        # here U_list_N_matrices = [e^{-iH(T-dt)}]
+    return U_full 
+#%%
+ # adjust portal, this will be input into function through 'N'
+Ly = 20 # here is the strip in real space y direction of our model -- kind of useless in this section
+ 
+Ny_plot_yOBC_edge = 20 # which is for chiral edge state plot, but not for edge density diagnosis --  
+#%%
+def plot_edge_vs_kx(k_x, N_y, num_time_stages): # here k_x is a list(taken from  # here the plot function 
+    Ufull_kx_list =[]
+    phase_list_of_list = []
+#    phase2_T_asc_list = []
+    
+    kx_list_for_plot = [] 
+    for i in range (len(k_x)):
+    
+        
+        # This loop's each round run one specific k_x
+        
+        Ufull_kx_list.append(U_yOBCxPBC_2Ny(N_y, k_x[i], num_time_stages))
+    #    print(i)
+#        print(Ufull_matrix_asc_list)
+        
+        
+    for i in range (len(k_x)): # this is just for using the U_full as a list, it is actually still in 
+                               # -- specify only k_x layer
+                               
+         # for each fixed k_x, we have one Ufull_kx_list[i], corresponding to 2N eigvals 
+        
+        eigvals_edge, eigvecs_edge = np.linalg.eig(Ufull_kx_list[i]) # here should be 2N eigen vals, here this eig fun
+                                                           # -- will produce eigvals as a list 
+    #    print(eigvals,'--eigen value;', eigvecs,'--eigen vector', i,'i') # all these eigen values are complex!!
+        eigvals_kx_2Ny_list = eigvals_edge  # just rename
+        
+ #       print(eigvals_kx_2Ny_list, 'eigevals')
+        
+        phase_kx_2Ny_list = []
+        
+        for j in range (len(eigvals_kx_2Ny_list)):
+            
+            phase_kx_j = - np.angle(eigvals_kx_2Ny_list[j])
+            
+            phase_kx_2Ny_list. append (phase_kx_j) # this is list of phase for specific k_x, length 2N
+            
+#        print(phase_kx_2Ny_list, 'phases')
+       
+        phase_list_of_list. append(phase_kx_2Ny_list) # this will be a list of different k_x, for each k_x has j
+                                                     # -- layer one: len(k_x) -- layer two(each k_x), j_phase
+        
+        
+        kx_list_for_plot. append([k_x[i]] * len(phase_kx_2Ny_list))
+#          for kx_val in k_x:
+#        U = U_full_ascending_edge(N, kx_val)
+#        eigvals, _ = np.linalg.eig(U)
+#        phases = -np.angle(eigvals)  # shape: (2N,)
+        
+#        phase_list.extend(phases)
+   #     kx_expanded.extend([kx_val] * len(phases))  # repeat kx_val for each phase
+
+#    plt.figure(figsize=(8, 5))
+#    print (len(kx_list_for_plot))
+#    print(len( phase_list_of_list))
+    plt.plot(kx_list_for_plot, phase_list_of_list, '.', markersize=3)
+            
+  #  plt.plot(k_x, phase_list_of_list,  'o', label='edge phase')
+            
+
+        
+ #   for y in range (len(eigval_kx_2N_list)):
+        
+        
+        
+#        phase_kx_2Ny_list. append (phase_kx_2N)
+        
+#        phase1_T_asc_list.append(- np.angle(eigvals[0]))
+#        phase2_T_asc_list.append(- np.angle(eigvals[1]))
+
+# -- Does here to use a list A filled in by last i loop, it needed to have another new i loop to distribute A[i]?
+
+#    plt.plot(k_x, phase1_T_asc_list,  'o', label='phase 1(1st eigval), phi_n = phi_0')
+#    plt.plot(k_x, phase2_T_asc_list,  'o', label='phase 2(2nd eigval), phi_n = phi_1')
+
+    
+#for i in range (len(k_y_list)):
+    
+
+#    plot_phase_vs_kx(k_x_list, k_y_list[i])
+
+#CHIRAL EDGE STATE PLOT
+    
+plot_edge_vs_kx(k_x_list, Ny_plot_yOBC_edge, 50)
+#plt.xlim(1.7, 1.8)
+plt.ylim(-np.pi, np.pi)
+#plt.ylim(-1.75, -0.8)
+plt.xlabel('$k_x a_0$')
+plt.ylabel('Phase at time T ($\epsilon(k, T)T$)')
+plt.grid()
+plt.title(rf'Bulk and Edge Phases vs $k_x a_0$, y direction unit cell number $Ly  = {Ny_plot_yOBC_edge}$')
+#plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+    
+#here end chiral edge state plot
 
 #%% Guess: bulk-defect as in bulk hamiltonian's winding number decide what will happen when we introduce defect
 #hence we don't need to calculate winding number through the one with time vortex; we can try: without time vortex
@@ -766,17 +1232,17 @@ def winding_number_enumerate_fixed(n_kx, n_ky, n_t, epsilon ):
 
 #%% tuning parameter 
 W_enum, u_grid, integrand_grid = winding_number_enumerate_fixed(
-    n_kx=50,
-    n_ky=50,
-    n_t=50,
-    epsilon= 0
+    n_kx=2,
+    n_ky=2,
+    n_t=2,
+    epsilon= np.pi
 )
 #%% convergence test
-for n in [40, 50, 60]:
+for n in [40]:
     W_enum, _, _ = winding_number_enumerate_fixed(
         n_kx=n,
         n_ky=n,
         n_t=2*n,
-        epsilon=0
+        epsilon= np.pi
     )
     print("n =", n, "W =", W_enum)
